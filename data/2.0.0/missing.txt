@@ -1,0 +1,6 @@
+Microsoft.AI.PerfCounterCollector, Version=2.8.1.0, Culture=neutral, PublicKeyTo
+ken=31bf3856ad364e35
+Microsoft.AI.WindowsServer, Version=2.8.1.0, Culture=neutral, PublicKeyToken=31b
+f3856ad364e35
+Microsoft.AI.ServerTelemetryChannel, Version=2.8.1.0, Culture=neutral, PublicKey
+Token=31bf3856ad364e35
