@@ -75,29 +75,31 @@ d3.json("data/assemblies.json")
 		 						.range([2, 20])
 		 						.domain(d3.extent(source, d => d.TypesInfo.Total));
 
-		 const node = svg.append("g")
-		      				.attr("stroke", "#fff")
-						    .attr("stroke-width", 1.5)
-						.selectAll("circle")
+		 const node = svg
+		 				.append("g")
+		 					.attr("class", "nodes")
+						.selectAll("g")
 						    .data(source)
-						    .join("circle")
-						      .attr("r", d => scaleTotal(d.TypesInfo.Total))
-						      .attr("fill", "tomato")
-						      .attr("stroke", "tomato")
-						      .attr("fill-opacity", 0.7)
-						      .call(drag(simulation));
+						    .join("g")
+						    	.attr("class", "node")
+						    	.call(drag(simulation));
+
+
+		const circles = node.append("circle").attr("r", d => scaleTotal(d.TypesInfo.Total))
+
+		const labels = node.append("text").text(d => d.FriendlyName);
 
 		simulation.on("tick", () => {
+
 		    link
 		        .attr("x1", d => d.source.x)
 		        .attr("y1", d => d.source.y)
 		        .attr("x2", d => d.target.x)
 		        .attr("y2", d => d.target.y);
 
-		    node
-		        .attr("cx", d => d.x)
-		        .attr("cy", d => d.y);
-		  });
+		    node.attr("transform", d => `translate(${ d.x }, ${ d.y })`);
+		    
+		});
 
 	console.log("Wooho!");
 
