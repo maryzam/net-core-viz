@@ -24,29 +24,39 @@ const drag = simulation => {
       .on("end", dragended);
 };
 
+const getShortName = (assembly) => assembly.split(",")[0];
+
 d3.json("data/assemblies.json")
 	.then(source => {
 
 		const nameMap = {};
 
-		source.forEach((assembly, idx) => {
-			assembly["FriendlyName"] = assembly.Name.split(",")[0];
-			assembly["id"] = idx;
-			nameMap[assembly.Name] = idx;
+		const data = source.filter((assembly, pos) => {
+			const firstPos = source.findIndex(item => item.Name == assembly.Name);
+			const isDuplicate = pos > firstPos;
+			return !isDuplicate;
 		});
-		
-		const links = source
-						.map(assembly => 
-							assembly.Dependencies.map(dep => ({ 
-								source: nameMap[assembly.Name], 
-								target: nameMap[dep],
-							}))
+
+		data.forEach((assembly, idx) => {
+			assembly["id"] = idx;
+			assembly["FriendlyName"] = getShortName(assembly.Name);
+			nameMap[assembly.FriendlyName] = idx;
+		});
+
+		const links = data.map(assembly => 
+							assembly.Dependencies.map(dep => {
+								const depName = getShortName(dep);
+								return { 
+									source: assembly.id, 
+									target: nameMap[depName]
+								};
+							})
 						)
 						.flat()
 						.filter(link => link.target !== undefined); //todo
 						
 
-		const simulation = d3.forceSimulation(source)
+		const simulation = d3.forceSimulation(data)
 					.force("link", d3.forceLink(links).id(d => d.id))
 					.force("charge", d3.forceManyBody())
 					.force("x", d3.forceX())
@@ -62,7 +72,6 @@ d3.json("data/assemblies.json")
  						.append("g")
  							.attr("transform", `translate(${ width / 2}, ${ height / 2})`);
 
- 		console.log(links);
 		const link = svg.append("g")
 		      				.attr("stroke", "#999")
 		      				.attr("stroke-opacity", 0.6)
@@ -73,13 +82,13 @@ d3.json("data/assemblies.json")
 
 		 const scaleTotal = d3.scaleLinear()
 		 						.range([2, 20])
-		 						.domain(d3.extent(source, d => d.TypesInfo.Total));
+		 						.domain(d3.extent(data, d => d.TypesInfo.Total));
 
 		 const node = svg
 		 				.append("g")
 		 					.attr("class", "nodes")
 						.selectAll("g")
-						    .data(source)
+						    .data(data)
 						    .join("g")
 						    	.attr("class", "node")
 						    	.call(drag(simulation));
@@ -87,7 +96,7 @@ d3.json("data/assemblies.json")
 
 		const circles = node.append("circle").attr("r", d => scaleTotal(d.TypesInfo.Total))
 
-		const labels = node.append("text").text(d => d.FriendlyName);
+		const labels = node.append("text").text(d => `${ d.FriendlyName } ${ d.Dependencies.length }`);
 
 		simulation.on("tick", () => {
 
@@ -98,10 +107,8 @@ d3.json("data/assemblies.json")
 		        .attr("y2", d => d.target.y);
 
 		    node.attr("transform", d => `translate(${ d.x }, ${ d.y })`);
-		    
-		});
 
-	console.log("Wooho!");
+		});
 
 }).catch(error => console.log(err));
 
