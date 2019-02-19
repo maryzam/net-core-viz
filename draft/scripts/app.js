@@ -24,11 +24,15 @@ const drag = simulation => {
       .on("end", dragended);
 };
 
-const getShortName = (assembly) => assembly.split(",")[0];
-
 d3.json("data/assemblies.json")
 	.then(source => {
 
+		const width = 960;
+      	const height = 600;
+
+		const scaleLevel =d3.scaleLinear()
+							.domain(d3.extent(source, d => d.Level))
+							.range([height - 100, 50]);
 		const nameMap = {};
 
 		const data = source.filter((assembly, pos) => {
@@ -39,38 +43,37 @@ d3.json("data/assemblies.json")
 
 		data.forEach((assembly, idx) => {
 			assembly["id"] = idx;
-			assembly["FriendlyName"] = getShortName(assembly.Name);
-			nameMap[assembly.FriendlyName] = idx;
+			nameMap[assembly.Name] = idx;
+			assembly["y"] = scaleLevel(assembly.Level);
 		});
 
 		const links = data.map(assembly => 
-							assembly.Dependencies.map(dep => {
-								const depName = getShortName(dep);
+							assembly.Dependencies.map(dependency => {
 								return { 
 									source: assembly.id, 
-									target: nameMap[depName]
+									target: nameMap[dependency]
 								};
 							})
 						)
 						.flat()
-						.filter(link => link.target !== undefined); //todo
+						.filter(link => link.target !== undefined); //todo?
 						
 
 		const simulation = d3.forceSimulation(data)
-					.force("link", d3.forceLink(links).id(d => d.id))
-					.force("charge", d3.forceManyBody())
-					.force("x", d3.forceX())
-					.force("y", d3.forceY());
+					.force("link", d3.forceLink(links).id(d => d.id).strength(0))
+					//.force("charge", d3.forceManyBody())
+					.force("collide", d3.forceCollide(5))
+					.force("y", d3.forceY(d => scaleLevel(d.Level)));
 
-      	const width = 960;
-      	const height = 600;
+    
 
  		const svg = d3.select("#root")
  						.append("svg")
  							.attr("width", width)
  							.attr("height", height)
  						.append("g")
- 							.attr("transform", `translate(${ width / 2}, ${ height / 2})`);
+ 							.attr("transform", `translate(${ width / 2}, ${ 50 })`);
+ 							//.attr("transform", `translate(${ width / 2}, ${ height / 2})`);
 
 		const link = svg.append("g")
 		      				.attr("stroke", "#999")
@@ -96,7 +99,7 @@ d3.json("data/assemblies.json")
 
 		const circles = node.append("circle").attr("r", d => scaleTotal(d.TypesInfo.Total))
 
-		const labels = node.append("text").text(d => `${ d.FriendlyName } ${ d.Dependencies.length }`);
+		const labels = node.append("text").text(d => `${ d.Name } ${ d.Dependencies.length }`);
 
 		simulation.on("tick", () => {
 
@@ -111,4 +114,3 @@ d3.json("data/assemblies.json")
 		});
 
 }).catch(error => console.log(err));
-
