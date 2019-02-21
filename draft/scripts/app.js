@@ -32,20 +32,26 @@ d3.json("data/assemblies.json")
 
 		const scaleLevel =d3.scaleLinear()
 							.domain(d3.extent(source, d => d.Level))
-							.range([height - 100, 50]);
-		const nameMap = {};
+							.range([height/2 - 50, 0]);
 
+		const scaleTotal = d3.scaleLinear()
+		 						.range([2, 20])
+		 						.domain(d3.extent(source, d => d.TypesInfo.Total));
+
+		const nameMap = {};
 		const data = source.filter((assembly, pos) => {
 			const firstPos = source.findIndex(item => item.Name == assembly.Name);
 			const isDuplicate = pos > firstPos;
 			return !isDuplicate;
 		});
 
+
 		data.forEach((assembly, idx) => {
 			assembly["id"] = idx;
 			nameMap[assembly.Name] = idx;
 			assembly["y"] = scaleLevel(assembly.Level);
 		});
+		console.log("Test");
 
 		const links = data.map(assembly => 
 							assembly.Dependencies.map(dependency => {
@@ -58,22 +64,18 @@ d3.json("data/assemblies.json")
 						.flat()
 						.filter(link => link.target !== undefined); //todo?
 						
-
 		const simulation = d3.forceSimulation(data)
-					.force("link", d3.forceLink(links).id(d => d.id).strength(0))
 					//.force("charge", d3.forceManyBody())
-					.force("collide", d3.forceCollide(5))
-					.force("y", d3.forceY(d => scaleLevel(d.Level)));
-
-    
+					.force("collide", d3.forceCollide().radius(d => scaleTotal(d.TypesInfo.Total) + 2))
+					.force("radial", d3.forceRadial(d => scaleLevel(d.Level)))
 
  		const svg = d3.select("#root")
  						.append("svg")
  							.attr("width", width)
  							.attr("height", height)
  						.append("g")
- 							.attr("transform", `translate(${ width / 2}, ${ 50 })`);
- 							//.attr("transform", `translate(${ width / 2}, ${ height / 2})`);
+ 							.attr("transform", `translate(${ width / 2}, ${ 50 })`)
+ 							.attr("transform", `translate(${ width / 2}, ${ height / 2})`);
 
 		const link = svg.append("g")
 		      				.attr("stroke", "#999")
@@ -82,10 +84,6 @@ d3.json("data/assemblies.json")
 		    				.data(links)
 		    				.join("line")
 		      				.attr("stroke-width", 1);
-
-		 const scaleTotal = d3.scaleLinear()
-		 						.range([2, 20])
-		 						.domain(d3.extent(data, d => d.TypesInfo.Total));
 
 		 const node = svg
 		 				.append("g")
