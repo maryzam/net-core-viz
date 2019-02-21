@@ -1,10 +1,17 @@
+body {
+	background: #F6F1EB;
+}
 
-.node circle {
-	stroke: tomato;
-	stroke-width: 1px;
-	fill: tomato;
-	fill-opacity: 0.7;
+.node circle.type {
+	stroke: none;
+	fill: #555;
 } 
+
+.node circle.member {
+	stroke: none;
+	fill: #008EDA;
+	fill-opacity: 0.3;
+}
 
 .node text {
 	display: none;

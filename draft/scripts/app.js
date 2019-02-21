@@ -35,8 +35,8 @@ d3.json("data/assemblies.json")
 							.range([height/2 - 50, 0]);
 
 		const scaleTotal = d3.scaleLinear()
-		 						.range([2, 20])
-		 						.domain(d3.extent(source, d => d.TypesInfo.Total));
+		 						.range([2, 25])
+		 						.domain(d3.extent(source, d => d.MembersInfo.Total));
 
 		const nameMap = {};
 		const data = source.filter((assembly, pos) => {
@@ -45,13 +45,12 @@ d3.json("data/assemblies.json")
 			return !isDuplicate;
 		});
 
-
 		data.forEach((assembly, idx) => {
 			assembly["id"] = idx;
 			nameMap[assembly.Name] = idx;
 			assembly["y"] = scaleLevel(assembly.Level);
 		});
-		console.log("Test");
+
 
 		const links = data.map(assembly => 
 							assembly.Dependencies.map(dependency => {
@@ -65,8 +64,7 @@ d3.json("data/assemblies.json")
 						.filter(link => link.target !== undefined); //todo?
 						
 		const simulation = d3.forceSimulation(data)
-					//.force("charge", d3.forceManyBody())
-					.force("collide", d3.forceCollide().radius(d => scaleTotal(d.TypesInfo.Total) + 2))
+					.force("collide", d3.forceCollide().radius(d => scaleTotal(d.MembersInfo.Total) + 2))
 					.force("radial", d3.forceRadial(d => scaleLevel(d.Level)))
 
  		const svg = d3.select("#root")
@@ -77,6 +75,20 @@ d3.json("data/assemblies.json")
  							.attr("transform", `translate(${ width / 2}, ${ 50 })`)
  							.attr("transform", `translate(${ width / 2}, ${ height / 2})`);
 
+ 		//draw circles
+		const levels = new Set(data.map(d => d.Level));
+		svg
+			.append("g")
+				.attr("class", "axis")
+			.selectAll("circle")
+				.data([...levels])
+				.join("circle")
+					.attr("r", d => scaleLevel(d))
+					.style("fill", "none")
+					.style("stroke", "#dadada")
+					.style("stroke-width", "1px");
+
+		//draw assemblies graph
 		const link = svg.append("g")
 		      				.attr("stroke", "#999")
 		      				.attr("stroke-opacity", 0.6)
@@ -95,7 +107,17 @@ d3.json("data/assemblies.json")
 						    	.call(drag(simulation));
 
 
-		const circles = node.append("circle").attr("r", d => scaleTotal(d.TypesInfo.Total))
+		const circles = node
+						.append("circle")
+							.attr("class", "member")
+							.attr("r", d => scaleTotal(d.MembersInfo.Total))
+							.style("fill", )
+
+		const innerCircles = node
+						.append("circle")
+							.attr("class", "type")
+							.attr("r", d => scaleTotal(d.TypesInfo.Total))
+							.style("fill", )
 
 		const labels = node.append("text").text(d => `${ d.Name } ${ d.Dependencies.length }`);
 
@@ -110,5 +132,7 @@ d3.json("data/assemblies.json")
 		    node.attr("transform", d => `translate(${ d.x }, ${ d.y })`);
 
 		});
+
+
 
 }).catch(error => console.log(err));
