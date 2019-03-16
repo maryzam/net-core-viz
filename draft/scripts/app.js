@@ -30,6 +30,10 @@ d3.json("data/assemblies.json")
 		const width = 960;
       	const height = 600;
 
+      	const scaleAngle = d3.scaleLinear()
+      							.domain([0, 150]) // todo
+      							.range([0, Math.PI  * 2]);
+
 		const scaleLevel =d3.scaleLinear()
 							.domain(d3.extent(source, d => d.Level))
 							.range([height/2 - 50, 0]);
@@ -45,12 +49,18 @@ d3.json("data/assemblies.json")
 			return !isDuplicate;
 		});
 
+ 		data.sort((a, b) => (a.Level - b.Level) || (a.Dependencies.length - b.Dependencies.length));
+ 		const levelOffsets = {};
 		data.forEach((assembly, idx) => {
+			levelOffsets[assembly.Level] =  (levelOffsets[assembly.Level] || 0) + 1;
+			const angle = scaleAngle(levelOffsets[assembly.Level]);
+			const dist = scaleLevel(assembly.Level);
+
 			assembly["id"] = idx;
 			nameMap[assembly.Name] = idx;
-			assembly["y"] = scaleLevel(assembly.Level);
+			assembly["y"] = dist * Math.sin(angle);
+			assembly["x"] = dist * Math.cos(angle);
 		});
-
 
 		const links = data.map(assembly => 
 							assembly.Dependencies.map(dependency => {
@@ -62,10 +72,10 @@ d3.json("data/assemblies.json")
 						)
 						.flat()
 						.filter(link => link.target !== undefined); //todo?
-						
+
 		const simulation = d3.forceSimulation(data)
 					.force("collide", d3.forceCollide().radius(d => scaleTotal(d.MembersInfo.Total) + 2))
-					.force("radial", d3.forceRadial(d => scaleLevel(d.Level)))
+					.force("radial", d3.forceRadial(d => scaleLevel(d.Level))); 
 
  		const svg = d3.select("#root")
  						.append("svg")
@@ -90,13 +100,12 @@ d3.json("data/assemblies.json")
 
 		//draw assemblies graph
 		const link = svg.append("g")
-		      				.attr("stroke", "#999")
-		      				.attr("stroke-opacity", 0.6)
 		    			.selectAll("line")
 		    				.data(links)
 		    				.join("line")
-		      				.attr("stroke-width", 1);
+		      					.attr("stroke-width", 1);
 
+		 console.log(links)
 		 const node = svg
 		 				.append("g")
 		 					.attr("class", "nodes")
@@ -104,8 +113,8 @@ d3.json("data/assemblies.json")
 						    .data(data)
 						    .join("g")
 						    	.attr("class", "node")
+						    	.attr("transform", d => `translate(${d.x || 0}, ${d.y || 0})`)
 						    	.call(drag(simulation));
-
 
 		const circles = node
 						.append("circle")
@@ -122,7 +131,6 @@ d3.json("data/assemblies.json")
 		const labels = node.append("text").text(d => `${ d.Name } ${ d.Dependencies.length }`);
 
 		simulation.on("tick", () => {
-
 		    link
 		        .attr("x1", d => d.source.x)
 		        .attr("y1", d => d.source.y)
@@ -132,7 +140,5 @@ d3.json("data/assemblies.json")
 		    node.attr("transform", d => `translate(${ d.x }, ${ d.y })`);
 
 		});
-
-
 
 }).catch(error => console.log(err));
