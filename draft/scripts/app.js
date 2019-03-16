@@ -63,19 +63,25 @@ d3.json("data/assemblies.json")
 		});
 
 		const links = data.map(assembly => 
-							assembly.Dependencies.map(dependency => {
-								return { 
-									source: assembly.id, 
-									target: nameMap[dependency]
-								};
-							})
+							assembly.Dependencies.map(dependency => ({ 
+									sourceId: assembly.id,
+									source: assembly, 
+									targetId: nameMap[dependency],
+									target: data[nameMap[dependency]]
+								})
+							)
 						)
 						.flat()
 						.filter(link => link.target !== undefined); //todo?
 
 		const simulation = d3.forceSimulation(data)
 					.force("collide", d3.forceCollide().radius(d => scaleTotal(d.MembersInfo.Total) + 2))
-					.force("radial", d3.forceRadial(d => scaleLevel(d.Level))); 
+					.force("radial", d3.forceRadial(d => scaleLevel(d.Level)))
+					.stop();
+
+		for (let i = 0; i < 200; ++i) {
+		    simulation.tick();
+		}
 
  		const svg = d3.select("#root")
  						.append("svg")
@@ -99,13 +105,32 @@ d3.json("data/assemblies.json")
 					.style("stroke-width", "1px");
 
 		//draw assemblies graph
-		const link = svg.append("g")
+		const link = svg.append("g").attr("class", "link")
 		    			.selectAll("line")
 		    				.data(links)
 		    				.join("line")
-		      					.attr("stroke-width", 1);
+			    				.attr("x1", d => d.source.x)
+						        .attr("y1", d => d.source.y)
+						        .attr("x2", d => d.target.x)
+						        .attr("y2", d => d.target.y)
+			      					.style("stroke-width", 1)
+			      					.style("stroke", "#333")
+			      					.style("opacity", 0.3);
 
-		 console.log(links)
+		const onMouseOver = (d) => {
+			link
+				.transition(200)
+				.style("opacity", (l) => (l.source.Name == d.Name) ? 1 : 0.3)
+				.style("stroke", (l) => (l.source.Name == d.Name) ? "tomato" : "#333");
+		}
+
+		const onMouseOut = (d) => {
+			link
+				.transition(200)
+				.style("opacity", 0.3)
+				.style("stroke", "#333");
+		}
+
 		 const node = svg
 		 				.append("g")
 		 					.attr("class", "nodes")
@@ -114,7 +139,8 @@ d3.json("data/assemblies.json")
 						    .join("g")
 						    	.attr("class", "node")
 						    	.attr("transform", d => `translate(${d.x || 0}, ${d.y || 0})`)
-						    	.call(drag(simulation));
+						    	.on("mouseout", onMouseOut)
+						    	.on("mouseover", onMouseOver);
 
 		const circles = node
 						.append("circle")
@@ -129,7 +155,6 @@ d3.json("data/assemblies.json")
 							.style("fill", )
 
 		const labels = node.append("text").text(d => `${ d.Name } ${ d.Dependencies.length }`);
-
 		simulation.on("tick", () => {
 		    link
 		        .attr("x1", d => d.source.x)
